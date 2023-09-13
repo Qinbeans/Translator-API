@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "github.com/protocolbuffers/protobuf/examples/go/tutorialpb";
+
+message Details {
+    string src = 1;
+    string token = 2;
+    string message = 3;
+}
+
+message TranslateRequest {
+    string text = 1;
+    Details details = 2;
+}
+
+message TranslateResponse {
+    string text = 1;
+    Details details = 2;
+}
+
+service Translator {
+    rpc Translate(TranslateRequest) returns (TranslateResponse);
+}

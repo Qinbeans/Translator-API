@@ -1,0 +1,3 @@
+[submodule "proto-py/TransCan"]
+	path = proto-py/TransCan
+	url = https://github.com/ayaka14732/TransCan.git

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ $1 == "start" ]]; then
+    echo "Starting gRPC server..."
+    python3 proto-py/server.py -c localhost:9095 >out.py.log 2>err.py.log & echo $!
+    sleep 5
+    echo "Starting HTTP server..."
+    go run . >out.go.log 2>err.go.log & echo $!
+elif [[ $1 == "stop" ]]; then
+    echo "Stopping HTTP server..."
+    kill $(ss -lptn 'sport = 8081' | grep "LISTEN" | awk '{print $6}' | cut -d',' -f2 | cut -d'=' -f2) 2>/dev/null
+    echo "Stopping gRPC server..."
+    kill $(ss -lptn 'sport = 9095' | grep "LISTEN" | awk '{print $6}' | cut -d',' -f2 | cut -d'=' -f2) 2>/dev/null
+fi

@@ -1,1 +1,3 @@
 proto-py/data
+err.*.log
+out.*.log

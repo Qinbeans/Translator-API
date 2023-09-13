@@ -16,6 +16,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	allowed_hosts := os.Getenv("ALLOWED_HOSTS")
+
 	host := os.Getenv("HOST")
 	port := os.Getenv("PORT")
 
@@ -39,9 +42,9 @@ func main() {
 
 	router.HandleCORS = fasthttprouter.CORS{
 		Handle:       true,
-		AllowOrigin:  "https://canto.qinbeans.net",
+		AllowOrigin:  allowed_hosts,
 		AllowMethods: []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "X-Requested-With"},
+		AllowHeaders: []string{"Origin", "Content-Type", "content-type", "X-Requested-With"},
 		MaxAge:       3600,
 	}
 

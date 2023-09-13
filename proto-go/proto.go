@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"strconv"
 	"time"
 	"translator-api/utils"
@@ -24,6 +25,11 @@ const (
 var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
+		allowedOrigins := os.Getenv("ALLOWED_HOSTS")
+		origin := string(ctx.Request.Header.Peek("Origin"))
+		return origin == allowedOrigins
+	},
 }
 
 type NaiveRequest struct {
@@ -71,16 +77,16 @@ func (p *ProtoGo) Start() {
 	go func() {
 		for {
 			req := p.queue.Pop()
-			_, err := p.tranClient.Translate(context.Background(), req)
+			res, err := p.tranClient.Translate(context.Background(), req)
 			if err != nil {
 				log.Printf("Error: %s", err)
 			}
-			if ws, ok := p.wsConns[req.Details.Token]; ok {
+			if ws, ok := p.wsConns[res.Details.Token]; ok {
 				if ws != nil {
 					if err != nil {
 						ws.WriteJSON(map[string]string{"status": "error", "result": err.Error()})
 					} else {
-						ws.WriteJSON(map[string]string{"status": "done", "result": req.Details.Message})
+						ws.WriteJSON(map[string]string{"status": "done", "result": res.Text})
 					}
 				}
 			}
@@ -103,6 +109,7 @@ func (p *ProtoGo) Close() {
 //	}
 func (p *ProtoGo) HandleWebSocket(ctx *fasthttp.RequestCtx) {
 	token := ctx.UserValue("token").(string)
+	log.Println("GET:\t/ws/" + token)
 	if token == "" {
 		utils.SendJSON(ctx, fasthttp.StatusBadRequest, map[string]string{"error": "invalid request"})
 		return
@@ -121,10 +128,10 @@ func (p *ProtoGo) HandleWebSocket(ctx *fasthttp.RequestCtx) {
 				ws.Close()
 			}()
 
-			ticker := time.NewTicker(30 * time.Second)
+			ticker := time.NewTicker(30 * time.Millisecond)
 			defer ticker.Stop()
 
-			timeout := time.NewTimer(5 * time.Minute)
+			timeout := time.NewTimer(10 * time.Second)
 
 			ws.WriteJSON(map[string]string{"status": "connected"})
 			for {
@@ -144,6 +151,7 @@ func (p *ProtoGo) HandleWebSocket(ctx *fasthttp.RequestCtx) {
 			log.Println("upgrade:", err)
 			return
 		}
+		return
 	}
 
 	log.Println("Invalid token")

@@ -20,3 +20,7 @@ Uses [TransCan](https://github.com/ayaka14732/TransCan.git) to translate text fr
 ## Notes
 
 Meant for use with my Translator frontend
+
+## TODO
+
+- [ ] Add tests

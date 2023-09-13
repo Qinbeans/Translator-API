@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strconv"
 	"time"
 	"translator-api/utils"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -64,6 +66,7 @@ func NewProtoGo(addr string) *ProtoGo {
 	}
 }
 
+// Start the queue worker
 func (p *ProtoGo) Start() {
 	go func() {
 		for {
@@ -89,6 +92,15 @@ func (p *ProtoGo) Close() {
 	p.conn.Close()
 }
 
+// Handle websocket connection
+//
+// GET /ws/{token}
+//
+// response:
+//
+//	{
+//		"status": "connected"
+//	}
 func (p *ProtoGo) HandleWebSocket(ctx *fasthttp.RequestCtx) {
 	token := ctx.UserValue("token").(string)
 	if token == "" {
@@ -137,7 +149,23 @@ func (p *ProtoGo) HandleWebSocket(ctx *fasthttp.RequestCtx) {
 	log.Println("Invalid token")
 }
 
+// Translate text
+//
+// POST /translate
+//
+// body:
+//
+//	{
+//		"text": "Hello world"
+//	}
+//
+// response:
+//
+//	{
+//		"token": "uuid"
+//	}
 func (p *ProtoGo) Translate(ctx *fasthttp.RequestCtx) {
+	log.Println("POST:\t/translate")
 
 	//check if queue is full
 	if len(p.queue.Requests) >= MAX_QUEUE_SIZE {
@@ -164,5 +192,40 @@ func (p *ProtoGo) Translate(ctx *fasthttp.RequestCtx) {
 
 	p.wsConns[target] = nil
 
-	utils.SendJSON(ctx, fasthttp.StatusOK, map[string]string{"target": target})
+	utils.SendJSON(ctx, fasthttp.StatusOK, map[string]string{"token": target})
+}
+
+// Health check
+//
+// GET /health
+//
+// response:
+//
+//	{
+//		"status": "ok",
+//		"queue_size": 0,
+//		"ws_connections": 0,
+//		"grpc": "ready"
+//	}
+func (p *ProtoGo) Health(ctx *fasthttp.RequestCtx) {
+	log.Println("GET:\t/health")
+
+	//send json response
+	health_status := map[string]string{}
+
+	health_status["status"] = "ok"
+	health_status["queue_size"] = strconv.Itoa(len(p.queue.Requests))
+	health_status["ws_connections"] = strconv.Itoa(len(p.wsConns))
+	// check connection to grpc server
+	if p.conn.GetState() == connectivity.Connecting {
+		health_status["grpc"] = "connecting"
+	} else if p.conn.GetState() == connectivity.Ready {
+		health_status["grpc"] = "ready"
+	} else if p.conn.GetState() == connectivity.Idle {
+		health_status["grpc"] = "idle"
+	} else {
+		health_status["grpc"] = "error"
+	}
+
+	utils.SendJSON(ctx, fasthttp.StatusOK, health_status)
 }

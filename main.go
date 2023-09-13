@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	protogo "translator-api/proto-go"
-	"translator-api/utils"
 
 	"github.com/georgecookeIW/fasthttprouter"
 	"github.com/joho/godotenv"
@@ -46,15 +45,12 @@ func main() {
 		MaxAge:       3600,
 	}
 
-	router.GET("/v1/", func(ctx *fasthttp.RequestCtx) {
+	router.GET("/api/v1/", func(ctx *fasthttp.RequestCtx) {
 		ctx.WriteString("Nothing to see here.")
 	})
-	router.GET("/v1/health", func(ctx *fasthttp.RequestCtx) {
-		//send json response
-		utils.SendJSON(ctx, 200, map[string]string{"status": "ok"})
-	})
-	router.GET("/v1/ws/:token", requester.HandleWebSocket)
-	router.POST("/v1/translate", requester.Translate)
+	router.GET("/api/v1/health", requester.Health)
+	router.GET("/api/v1/ws/:token", requester.HandleWebSocket)
+	router.POST("/api/v1/translate", requester.Translate)
 
 	log.Fatal(fasthttp.ListenAndServe(connection_str, router.Handler))
 }

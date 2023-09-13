@@ -36,6 +36,16 @@ func main() {
 
 	fmt.Println("Connect to http://" + connection_str)
 
+	router.HandleOPTIONS = true
+
+	router.HandleCORS = fasthttprouter.CORS{
+		Handle:       true,
+		AllowOrigin:  "https://canto.qinbeans.net",
+		AllowMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders: []string{"Origin", "Content-Type", "X-Requested-With"},
+		MaxAge:       3600,
+	}
+
 	router.GET("/v1/", func(ctx *fasthttp.RequestCtx) {
 		ctx.WriteString("Nothing to see here.")
 	})
